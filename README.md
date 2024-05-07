@@ -38,7 +38,8 @@ the node will produce a message on topic `/md80/joint_status`.
 
 The full status/warning/error state can be read with a call to `/get_full_status_md80s` service,
 and cleared with a call to `/clear_error_md80s` service.
-NOTE: Both of the above services will disable all drives connected in same string as md80,
+
+NOTE: Both of the above services will disable all drives connected in same CAN  netowrk as md80,
 that signaled an error. Clearing errors is not possible without disabling the drives.
 This is intended safety feature.
 
