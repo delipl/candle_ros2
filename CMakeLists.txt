@@ -35,6 +35,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GenericMd80Msg.srv"
   "srv/SetModeMd80s.srv"
   "srv/SetLimitsMd80.srv"
+  "srv/GetFullStatusMd80s.srv"
   DEPENDENCIES builtin_interfaces std_msgs
 )
 set(CMAKE_INSTALL_RPATH $ORIGIN)  # sets proper runtime paths for exec to link .so properly

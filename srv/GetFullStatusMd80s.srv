@@ -1,0 +1,11 @@
+uint16[] drive_ids
+---
+uint32[] encoder_status
+uint32[] output_encoder_status
+uint32[] calibration_status
+uint32[] bridge_status
+uint32[] hardware_status
+uint32[] communication_status
+uint32[] homing_status
+uint32[] motion_status
+

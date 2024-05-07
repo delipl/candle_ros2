@@ -1,6 +1,5 @@
 #include "md80_node.hpp"
 #include "candle.hpp"
-#include <bitset>
 
 const std::string version = "v1.3.3.d";
 
@@ -96,6 +95,10 @@ Md80Node::Md80Node(int argc, char** argv) : Node("candle_ros2_node")
 	clearErrorsService = this->create_service<candle_ros2::srv::GenericMd80Msg>(
 		this->get_name() + std::string("/clear_error_md80s"),
 		std::bind(&Md80Node::service_clearErrorMd80, this, std::placeholders::_1,
+				  std::placeholders::_2));
+	GetFullStatusMd80Service = this->create_service<candle_ros2::srv::GetFullStatusMd80s>(
+		this->get_name() + std::string("/get_full_status_md80s"),
+		std::bind(&::Md80Node::service_getFullStatusMd80, this, std::placeholders::_1,
 				  std::placeholders::_2));
 
 	motionCommandSub = this->create_subscription<candle_ros2::msg::MotionCommand>(
@@ -306,13 +309,13 @@ void Md80Node::service_clearErrorMd80(
 	const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
 	std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response)
 {
-    bool success = false;
+	bool success = false;
 	for (auto& id : request->drive_ids)
 	{
 		auto candle = findCandleByMd80Id(id);
 		if (candle != NULL)
 		{
-            candle->end();
+			candle->end();
 			success = candle->setupMd80ClearWarnings(id) && candle->setupMd80ClearErrors(id);
 			response->drives_success.push_back(success);
 		}
@@ -321,6 +324,41 @@ void Md80Node::service_clearErrorMd80(
 			response->drives_success.push_back(false);
 			RCLCPP_WARN(this->get_logger(), "Drive with ID: %d could not clear errors!", id);
 		}
+	}
+}
+void Md80Node::service_getFullStatusMd80(
+	const std::shared_ptr<candle_ros2::srv::GetFullStatusMd80s::Request> request,
+	std::shared_ptr<candle_ros2::srv::GetFullStatusMd80s::Response> res)
+{
+	for (auto& id : request->drive_ids)
+	{
+		res->encoder_status.push_back(0xFFFFFFFF);
+		res->output_encoder_status.push_back(0xFFFFFFFF);
+		res->calibration_status.push_back(0xFFFFFFFF);
+		res->bridge_status.push_back(0xFFFFFFFF);
+		res->hardware_status.push_back(0xFFFFFFFF);
+		res->communication_status.push_back(0xFFFFFFFF);
+		res->motion_status.push_back(0xFFFFFFFF);
+		res->homing_status.push_back(0xFFFFFFFF);
+		auto candle = findCandleByMd80Id(id);
+		if (candle != NULL)
+		{
+			candle->end();
+			candle->setupMd80DiagnosticExtended(id);
+			candle->readMd80Register(id, mab::Md80Reg_E::mainEncoderErrors, res->encoder_status.back());
+			candle->readMd80Register(id, mab::Md80Reg_E::outputEncoderErrors,
+									 res->output_encoder_status.back());
+			candle->readMd80Register(id, mab::Md80Reg_E::calibrationErrors,
+									 res->calibration_status.back());
+			candle->readMd80Register(id, mab::Md80Reg_E::bridgeErrors, res->bridge_status.back());
+			candle->readMd80Register(id, mab::Md80Reg_E::hardwareErrors, res->hardware_status.back());
+			candle->readMd80Register(id, mab::Md80Reg_E::communicationErrors,
+									 res->communication_status.back());
+			candle->readMd80Register(id, mab::Md80Reg_E::motionErrors, res->motion_status.back());
+			candle->readMd80Register(id, mab::Md80Reg_E::homingErrors, res->homing_status.back());
+		}
+		else
+			RCLCPP_WARN(this->get_logger(), "Drive with ID: %d could not read errors!", id);
 	}
 }
 void Md80Node::publishJointStates()

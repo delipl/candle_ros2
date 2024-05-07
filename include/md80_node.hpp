@@ -1,6 +1,6 @@
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
-#include <diagnostic_msgs/msg/diagnostic_status.hpp>
 
 #include "candle.hpp"
 #include "candle_ros2/msg/impedance_command.hpp"
@@ -11,16 +11,17 @@
 #include "candle_ros2/srv/generic_md80_msg.hpp"
 #include "candle_ros2/srv/set_limits_md80.hpp"
 #include "candle_ros2/srv/set_mode_md80s.hpp"
+#include "candle_ros2/srv/get_full_status_md80s.hpp"
 
 class Md80Node : public rclcpp::Node
 {
-   public:
+  public:
 	Md80Node(int argc, char** argv);
 	~Md80Node();
 
-   private:
+  private:
 	std::vector<mab::Candle*> candleInstances;
-    std::vector<std::vector<uint16_t>> md80quickStatus;
+	std::vector<std::vector<uint16_t>> md80quickStatus;
 	rclcpp::TimerBase::SharedPtr pubTimer;
 
 	rclcpp::Service<candle_ros2::srv::AddMd80s>::SharedPtr addMd80Service;
@@ -30,6 +31,7 @@ class Md80Node : public rclcpp::Node
 	rclcpp::Service<candle_ros2::srv::GenericMd80Msg>::SharedPtr enableMd80Service;
 	rclcpp::Service<candle_ros2::srv::GenericMd80Msg>::SharedPtr disableMd80Service;
 	rclcpp::Service<candle_ros2::srv::SetLimitsMd80>::SharedPtr setLimitsMd80Service;
+	rclcpp::Service<candle_ros2::srv::GetFullStatusMd80s>::SharedPtr GetFullStatusMd80Service;
 
 	rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticStatus>::SharedPtr jointStatusPub;
 	rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr jointStatePub;
@@ -49,7 +51,10 @@ class Md80Node : public rclcpp::Node
 	void service_disableMd80(const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
 							 std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response);
 	void service_clearErrorMd80(const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
-							 std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response);
+								std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response);
+	void service_getFullStatusMd80(
+		const std::shared_ptr<candle_ros2::srv::GetFullStatusMd80s::Request> request,
+		std::shared_ptr<candle_ros2::srv::GetFullStatusMd80s::Response> res);
 
 	mab::Candle* findCandleByMd80Id(uint16_t md80Id);
 	void publishJointStates();
