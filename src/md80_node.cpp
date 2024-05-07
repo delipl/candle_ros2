@@ -3,23 +3,21 @@
 
 const std::string version = "v1.3.3.d";
 
+void printHelp()
+{
+	std::cout << "usage: ros2 run candle_ros2 candle_ros2_node <bus> <baud> [<device>] [--help]"
+			  << std::endl;
+	std::cout << "<bus> can be SPI/USB/UART" << std::endl;
+	std::cout << "<baud> can be 1M/2M/5M/8M" << std::endl;
+	std::cout << "<device> SPI or UART device if default is not suitable" << std::endl;
+	std::cout << "[--help] - displays help message" << std::endl;
+}
 Md80Node::Md80Node(int argc, char** argv) : Node("candle_ros2_node")
 {
-	if (argc < 2 || argc > 4)
+	if (argc != 3 || strcmp(argv[1], "--help") == 0)
 	{
-		std::cout << "Wrong arguments specified, please see candle_ros candle_ros_node --help"
-				  << std::endl;
-		return;
-	}
-
-	if (strcmp(argv[1], "--help") == 0)
-	{
-		std::cout << "usage: candle_ros candle_ros_node <bus> <baud> [<device>] [--help]" << std::endl;
-		std::cout << "<bus> can be SPI/USB/UART" << std::endl;
-		std::cout << "<baud> can be 1M/2M/5M/8M" << std::endl;
-		std::cout << "<device> SPI or UART device if default is not suitable" << std::endl;
-		std::cout << "[--help] - displays help message" << std::endl;
-		return;
+		printHelp();
+		exit(1);
 	}
 
 	mab::BusType_E bus = mab::BusType_E::USB;
@@ -34,7 +32,7 @@ Md80Node::Md80Node(int argc, char** argv) : Node("candle_ros2_node")
 	else
 	{
 		std::cout << "bus parameter not recognised!" << std::endl;
-		return;
+		exit(1);
 	}
 
 	if (strcmp(argv[2], "1M") == 0)
@@ -48,7 +46,7 @@ Md80Node::Md80Node(int argc, char** argv) : Node("candle_ros2_node")
 	else
 	{
 		std::cout << "baud parameter not recognised!" << std::endl;
-		return;
+		exit(1);
 	}
 
 	while (bus == mab::BusType_E::USB)
@@ -322,7 +320,7 @@ void Md80Node::service_clearErrorMd80(
 		else
 		{
 			response->drives_success.push_back(false);
-			RCLCPP_WARN(this->get_logger(), "Drive with ID: %d could not clear errors!", id);
+			RCLCPP_WARN(this->get_logger(), "Drive with ID: %d was not added!", id);
 		}
 	}
 }
@@ -341,24 +339,23 @@ void Md80Node::service_getFullStatusMd80(
 		res->motion_status.push_back(0xFFFFFFFF);
 		res->homing_status.push_back(0xFFFFFFFF);
 		auto candle = findCandleByMd80Id(id);
-		if (candle != NULL)
+		if (candle == NULL)
 		{
-			candle->end();
-			candle->setupMd80DiagnosticExtended(id);
-			candle->readMd80Register(id, mab::Md80Reg_E::mainEncoderErrors, res->encoder_status.back());
-			candle->readMd80Register(id, mab::Md80Reg_E::outputEncoderErrors,
-									 res->output_encoder_status.back());
-			candle->readMd80Register(id, mab::Md80Reg_E::calibrationErrors,
-									 res->calibration_status.back());
-			candle->readMd80Register(id, mab::Md80Reg_E::bridgeErrors, res->bridge_status.back());
-			candle->readMd80Register(id, mab::Md80Reg_E::hardwareErrors, res->hardware_status.back());
-			candle->readMd80Register(id, mab::Md80Reg_E::communicationErrors,
-									 res->communication_status.back());
-			candle->readMd80Register(id, mab::Md80Reg_E::motionErrors, res->motion_status.back());
-			candle->readMd80Register(id, mab::Md80Reg_E::homingErrors, res->homing_status.back());
+			RCLCPP_WARN(this->get_logger(), "Drive with ID: %d was not added!", id);
+			continue;
 		}
-		else
-			RCLCPP_WARN(this->get_logger(), "Drive with ID: %d could not read errors!", id);
+		candle->end();
+		candle->setupMd80DiagnosticExtended(id);
+		candle->readMd80Register(id, mab::Md80Reg_E::mainEncoderErrors, res->encoder_status.back());
+		candle->readMd80Register(id, mab::Md80Reg_E::outputEncoderErrors,
+								 res->output_encoder_status.back());
+		candle->readMd80Register(id, mab::Md80Reg_E::calibrationErrors, res->calibration_status.back());
+		candle->readMd80Register(id, mab::Md80Reg_E::bridgeErrors, res->bridge_status.back());
+		candle->readMd80Register(id, mab::Md80Reg_E::hardwareErrors, res->hardware_status.back());
+		candle->readMd80Register(id, mab::Md80Reg_E::communicationErrors,
+								 res->communication_status.back());
+		candle->readMd80Register(id, mab::Md80Reg_E::motionErrors, res->motion_status.back());
+		candle->readMd80Register(id, mab::Md80Reg_E::homingErrors, res->homing_status.back());
 	}
 }
 void Md80Node::publishJointStates()
@@ -431,7 +428,7 @@ void Md80Node::motionCommandCallback(const std::shared_ptr<candle_ros2::msg::Mot
 		}
 		catch (const char* eMsg)
 		{
-			RCLCPP_WARN(this->get_logger(), eMsg);
+			RCLCPP_WARN(this->get_logger(), "%s", eMsg);
 		}
 	}
 }
@@ -460,7 +457,7 @@ void Md80Node::impedanceCommandCallback(const std::shared_ptr<candle_ros2::msg::
 		}
 		catch (const char* eMsg)
 		{
-			RCLCPP_WARN(this->get_logger(), eMsg);
+			RCLCPP_WARN(this->get_logger(), "%s", eMsg);
 		}
 	}
 }
@@ -490,7 +487,7 @@ void Md80Node::velocityCommandCallback(const std::shared_ptr<candle_ros2::msg::V
 		}
 		catch (const char* eMsg)
 		{
-			RCLCPP_WARN(this->get_logger(), eMsg);
+			RCLCPP_WARN(this->get_logger(), "%s", eMsg);
 		}
 	}
 }
@@ -527,7 +524,7 @@ void Md80Node::positionCommandCallback(const std::shared_ptr<candle_ros2::msg::P
 		}
 		catch (const char* eMsg)
 		{
-			RCLCPP_WARN(this->get_logger(), eMsg);
+			RCLCPP_WARN(this->get_logger(), "%s", eMsg);
 		}
 	}
 }
