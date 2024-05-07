@@ -8,20 +8,29 @@ for this use [MDtool](https://github.com/mabrobotics/mdtool).
 
 The node normally communicates via services for setup, and via topics for regular data transfers.
 Services are: 
-- /add_md80s
-- /zero_md80s
-- /set_mode_md80s
-- /enable_md80s
-- /disable_md80s
+```
+/add_md80s
+/zero_md80s
+/set_mode_md80s
+/enable_md80s
+/disable_md80s
+/clear_error_md80s
+/get_full_status_md80s
+```
 
 Topics subscribed by the node are:
-- /md80/motion_command
-- /md80/impedance_command
-- /md80/velocity_pid_command
-- /md80/position_pid_command
+```
+/md80/motion_command
+/md80/impedance_command
+/md80/velocity_pid_command
+/md80/position_pid_command
+```
 
 Topic published by the node is:
-- /md80/joint_states
+```
+/md80/joint_states
+/md80/joint_status
+```
 
 ## Quick startup guide
 
