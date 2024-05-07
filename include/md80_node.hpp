@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
 
 #include "candle.hpp"
 #include "candle_ros2/msg/impedance_command.hpp"
@@ -19,6 +20,7 @@ class Md80Node : public rclcpp::Node
 
    private:
 	std::vector<mab::Candle*> candleInstances;
+    std::vector<std::vector<uint16_t>> md80quickStatus;
 	rclcpp::TimerBase::SharedPtr pubTimer;
 
 	rclcpp::Service<candle_ros2::srv::AddMd80s>::SharedPtr addMd80Service;
@@ -28,6 +30,7 @@ class Md80Node : public rclcpp::Node
 	rclcpp::Service<candle_ros2::srv::GenericMd80Msg>::SharedPtr disableMd80Service;
 	rclcpp::Service<candle_ros2::srv::SetLimitsMd80>::SharedPtr setLimitsMd80Service;
 
+	rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticStatus>::SharedPtr jointStatusPub;
 	rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr jointStatePub;
 	rclcpp::Subscription<candle_ros2::msg::MotionCommand>::SharedPtr motionCommandSub;
 	rclcpp::Subscription<candle_ros2::msg::ImpedanceCommand>::SharedPtr impedanceCommandSub;

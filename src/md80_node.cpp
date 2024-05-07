@@ -1,12 +1,15 @@
 #include "md80_node.hpp"
+#include "candle.hpp"
+#include <bitset>
 
-const std::string version = "v1.3.2";
+const std::string version = "v1.3.3.d";
 
 Md80Node::Md80Node(int argc, char** argv) : Node("candle_ros2_node")
 {
 	if (argc < 2 || argc > 4)
 	{
-		std::cout << "Wrong arguments specified, please see candle_ros candle_ros_node --help" << std::endl;
+		std::cout << "Wrong arguments specified, please see candle_ros candle_ros_node --help"
+				  << std::endl;
 		return;
 	}
 
@@ -75,28 +78,40 @@ Md80Node::Md80Node(int argc, char** argv) : Node("candle_ros2_node")
 		candleInstances.push_back(candle);
 	}
 
-	addMd80Service = this->create_service<candle_ros2::srv::AddMd80s>(this->get_name() + std::string("/add_md80s"),
-																	  std::bind(&Md80Node::service_addMd80, this, std::placeholders::_1, std::placeholders::_2));
-	zeroMd80Service = this->create_service<candle_ros2::srv::GenericMd80Msg>(this->get_name() + std::string("/zero_md80s"),
-																			 std::bind(&Md80Node::service_zeroMd80, this, std::placeholders::_1, std::placeholders::_2));
-	setModeMd80Service = this->create_service<candle_ros2::srv::SetModeMd80s>(this->get_name() + std::string("/set_mode_md80s"),
-																			  std::bind(&Md80Node::service_setModeMd80, this, std::placeholders::_1, std::placeholders::_2));
-	enableMd80Service = this->create_service<candle_ros2::srv::GenericMd80Msg>(this->get_name() + std::string("/enable_md80s"),
-																			   std::bind(&Md80Node::service_enableMd80, this, std::placeholders::_1, std::placeholders::_2));
-	disableMd80Service = this->create_service<candle_ros2::srv::GenericMd80Msg>(this->get_name() + std::string("/disable_md80s"),
-																				std::bind(&Md80Node::service_disableMd80, this, std::placeholders::_1, std::placeholders::_2));
+	addMd80Service = this->create_service<candle_ros2::srv::AddMd80s>(
+		this->get_name() + std::string("/add_md80s"),
+		std::bind(&Md80Node::service_addMd80, this, std::placeholders::_1, std::placeholders::_2));
+	zeroMd80Service = this->create_service<candle_ros2::srv::GenericMd80Msg>(
+		this->get_name() + std::string("/zero_md80s"),
+		std::bind(&Md80Node::service_zeroMd80, this, std::placeholders::_1, std::placeholders::_2));
+	setModeMd80Service = this->create_service<candle_ros2::srv::SetModeMd80s>(
+		this->get_name() + std::string("/set_mode_md80s"),
+		std::bind(&Md80Node::service_setModeMd80, this, std::placeholders::_1, std::placeholders::_2));
+	enableMd80Service = this->create_service<candle_ros2::srv::GenericMd80Msg>(
+		this->get_name() + std::string("/enable_md80s"),
+		std::bind(&Md80Node::service_enableMd80, this, std::placeholders::_1, std::placeholders::_2));
+	disableMd80Service = this->create_service<candle_ros2::srv::GenericMd80Msg>(
+		this->get_name() + std::string("/disable_md80s"),
+		std::bind(&Md80Node::service_disableMd80, this, std::placeholders::_1, std::placeholders::_2));
 
-	motionCommandSub = this->create_subscription<candle_ros2::msg::MotionCommand>("md80/motion_command", 10,
-																				  std::bind(&Md80Node::motionCommandCallback, this, std::placeholders::_1));
-	impedanceCommandSub = this->create_subscription<candle_ros2::msg::ImpedanceCommand>("md80/impedance_command", 10,
-																						std::bind(&Md80Node::impedanceCommandCallback, this, std::placeholders::_1));
-	velocityCommandSub = this->create_subscription<candle_ros2::msg::VelocityPidCommand>("md80/velocity_pid_command", 10,
-																						 std::bind(&Md80Node::velocityCommandCallback, this, std::placeholders::_1));
-	positionCommandSub = this->create_subscription<candle_ros2::msg::PositionPidCommand>("md80/position_pid_command", 10,
-																						 std::bind(&Md80Node::positionCommandCallback, this, std::placeholders::_1));
+	motionCommandSub = this->create_subscription<candle_ros2::msg::MotionCommand>(
+		"md80/motion_command", 10,
+		std::bind(&Md80Node::motionCommandCallback, this, std::placeholders::_1));
+	impedanceCommandSub = this->create_subscription<candle_ros2::msg::ImpedanceCommand>(
+		"md80/impedance_command", 10,
+		std::bind(&Md80Node::impedanceCommandCallback, this, std::placeholders::_1));
+	velocityCommandSub = this->create_subscription<candle_ros2::msg::VelocityPidCommand>(
+		"md80/velocity_pid_command", 10,
+		std::bind(&Md80Node::velocityCommandCallback, this, std::placeholders::_1));
+	positionCommandSub = this->create_subscription<candle_ros2::msg::PositionPidCommand>(
+		"md80/position_pid_command", 10,
+		std::bind(&Md80Node::positionCommandCallback, this, std::placeholders::_1));
 
 	jointStatePub = this->create_publisher<sensor_msgs::msg::JointState>("md80/joint_states", 10);
-	pubTimer = this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&Md80Node::publishJointStates, this));
+	jointStatusPub =
+		this->create_publisher<diagnostic_msgs::msg::DiagnosticStatus>("md80/joint_status", 10);
+	pubTimer = this->create_wall_timer(std::chrono::milliseconds(10),
+									   std::bind(&Md80Node::publishJointStates, this));
 	pubTimer->cancel();
 	RCLCPP_INFO(this->get_logger(), "candle_ros2_node %s has started.", version.c_str());
 }
@@ -113,7 +128,8 @@ mab::Candle* Md80Node::findCandleByMd80Id(uint16_t md80Id)
 	{
 		for (auto id : candle->md80s)
 		{
-			if (id.getId() == md80Id) return candle;
+			if (id.getId() == md80Id)
+				return candle;
 		}
 	}
 	return NULL;
@@ -144,6 +160,10 @@ void Md80Node::service_addMd80(const std::shared_ptr<candle_ros2::srv::AddMd80s:
 		else if (md80NotFound == candleInstances.size())
 			response->drives_success.push_back(false);
 	}
+	md80quickStatus.clear();
+	md80quickStatus.resize(candleInstances.size());
+	for (unsigned int i = 0; i < md80quickStatus.size(); i++)
+		md80quickStatus[i].resize(candleInstances[i]->md80s.size());
 
 	int totalNumberOfDrives = 0;
 
@@ -168,8 +188,9 @@ void Md80Node::service_zeroMd80(const std::shared_ptr<candle_ros2::srv::GenericM
 		}
 	}
 }
-void Md80Node::service_setModeMd80(const std::shared_ptr<candle_ros2::srv::SetModeMd80s::Request> request,
-								   std::shared_ptr<candle_ros2::srv::SetModeMd80s::Response> response)
+void Md80Node::service_setModeMd80(
+	const std::shared_ptr<candle_ros2::srv::SetModeMd80s::Request> request,
+	std::shared_ptr<candle_ros2::srv::SetModeMd80s::Response> response)
 {
 	if (request->drive_ids.size() != request->mode.size())
 	{
@@ -195,7 +216,8 @@ void Md80Node::service_setModeMd80(const std::shared_ptr<candle_ros2::srv::SetMo
 			mode = mab::Md80Mode_E::RAW_TORQUE;
 		else
 		{
-			RCLCPP_WARN(this->get_logger(), "MODE %s not recognized, setting IDLE for driveID = %d", request->mode[i].c_str(), request->drive_ids[i]);
+			RCLCPP_WARN(this->get_logger(), "MODE %s not recognized, setting IDLE for driveID = %d",
+						request->mode[i].c_str(), request->drive_ids[i]);
 			mode = mab::Md80Mode_E::IDLE;
 		}
 		auto candle = findCandleByMd80Id(request->drive_ids[i]);
@@ -208,8 +230,9 @@ void Md80Node::service_setModeMd80(const std::shared_ptr<candle_ros2::srv::SetMo
 		}
 	}
 }
-void Md80Node::service_enableMd80(const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
-								  std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response)
+void Md80Node::service_enableMd80(
+	const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
+	std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response)
 {
 	std::vector<mab::Candle*> candlesToBegin;
 
@@ -238,8 +261,9 @@ void Md80Node::service_enableMd80(const std::shared_ptr<candle_ros2::srv::Generi
 
 	pubTimer->reset();
 }
-void Md80Node::service_disableMd80(const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
-								   std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response)
+void Md80Node::service_disableMd80(
+	const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
+	std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response)
 {
 	std::vector<mab::Candle*> candlesToEnd;
 
@@ -276,6 +300,31 @@ void Md80Node::service_disableMd80(const std::shared_ptr<candle_ros2::srv::Gener
 }
 void Md80Node::publishJointStates()
 {
+	for (unsigned int i = 0; i < candleInstances.size(); i++)
+		for (unsigned int j = 0; j < candleInstances[i]->md80s.size(); j++)
+		{
+
+			mab::Md80& md = candleInstances[i]->md80s[i];
+			uint16_t newStatus =
+				(md.getQuickStatus() & 0x00FF); // discard RESERVED and "target reached" bits
+			if (newStatus == md80quickStatus[i][j])
+				continue;
+			md80quickStatus[i][j] = newStatus;
+			if (newStatus != 0)
+			{
+				diagnostic_msgs::msg::DiagnosticStatus msg;
+				msg.level = msg.ERROR;
+				msg.name = "MD80";
+				msg.hardware_id = std::to_string(md.getId());
+				diagnostic_msgs::msg::KeyValue value;
+				value.key = "quick status";
+				std::stringstream ss;
+				ss << "0x" << std::hex << md.getQuickStatus();
+				value.value = ss.str();
+				msg.values.push_back(value);
+				jointStatusPub->publish(msg);
+			}
+		}
 	sensor_msgs::msg::JointState jointStateMsg;
 	jointStateMsg.header.stamp = rclcpp::Clock().now();
 	for (auto candle : candleInstances)
@@ -293,10 +342,13 @@ void Md80Node::publishJointStates()
 }
 void Md80Node::motionCommandCallback(const std::shared_ptr<candle_ros2::msg::MotionCommand> msg)
 {
-	if (msg->drive_ids.size() != msg->target_position.size() || msg->drive_ids.size() != msg->target_velocity.size() ||
+	if (msg->drive_ids.size() != msg->target_position.size() ||
+		msg->drive_ids.size() != msg->target_velocity.size() ||
 		msg->drive_ids.size() != msg->target_torque.size())
 	{
-		RCLCPP_WARN(this->get_logger(), "Motion Command message incomplete. Sizes of arrays do not match! Ignoring message.");
+		RCLCPP_WARN(
+			this->get_logger(),
+			"Motion Command message incomplete. Sizes of arrays do not match! Ignoring message.");
 		return;
 	}
 	for (int i = 0; i < (int)msg->drive_ids.size(); i++)
@@ -324,7 +376,9 @@ void Md80Node::impedanceCommandCallback(const std::shared_ptr<candle_ros2::msg::
 {
 	if (msg->drive_ids.size() != msg->kp.size() || msg->drive_ids.size() != msg->kd.size())
 	{
-		RCLCPP_WARN(this->get_logger(), "Impedance Command message incomplete. Sizes of arrays do not match! Ignoring message.");
+		RCLCPP_WARN(
+			this->get_logger(),
+			"Impedance Command message incomplete. Sizes of arrays do not match! Ignoring message.");
 		return;
 	}
 	for (int i = 0; i < (int)msg->drive_ids.size(); i++)
@@ -351,7 +405,9 @@ void Md80Node::velocityCommandCallback(const std::shared_ptr<candle_ros2::msg::V
 {
 	if (msg->drive_ids.size() != msg->velocity_pid.size())
 	{
-		RCLCPP_WARN(this->get_logger(), "Velocity Command message incomplete. Sizes of arrays do not match! Ignoring message.");
+		RCLCPP_WARN(
+			this->get_logger(),
+			"Velocity Command message incomplete. Sizes of arrays do not match! Ignoring message.");
 		return;
 	}
 	for (int i = 0; i < (int)msg->drive_ids.size(); i++)
@@ -362,7 +418,8 @@ void Md80Node::velocityCommandCallback(const std::shared_ptr<candle_ros2::msg::V
 			if (candle != NULL)
 			{
 				auto& md = candle->getMd80FromList(msg->drive_ids[i]);
-				md.setVelocityControllerParams(msg->velocity_pid[i].kp, msg->velocity_pid[i].ki, msg->velocity_pid[i].kd, msg->velocity_pid[i].i_windup);
+				md.setVelocityControllerParams(msg->velocity_pid[i].kp, msg->velocity_pid[i].ki,
+											   msg->velocity_pid[i].kd, msg->velocity_pid[i].i_windup);
 				md.setMaxTorque(msg->velocity_pid[i].max_output);
 			}
 			else
@@ -378,7 +435,9 @@ void Md80Node::positionCommandCallback(const std::shared_ptr<candle_ros2::msg::P
 {
 	if (msg->drive_ids.size() != msg->position_pid.size())
 	{
-		RCLCPP_WARN(this->get_logger(), "Position Command message incomplete. Sizes of arrays do not match! Ignoring message.");
+		RCLCPP_WARN(
+			this->get_logger(),
+			"Position Command message incomplete. Sizes of arrays do not match! Ignoring message.");
 		return;
 	}
 	for (int i = 0; i < (int)msg->drive_ids.size(); i++)
@@ -389,11 +448,14 @@ void Md80Node::positionCommandCallback(const std::shared_ptr<candle_ros2::msg::P
 			if (candle != NULL)
 			{
 				auto& md = candle->getMd80FromList(msg->drive_ids[i]);
-				md.setPositionControllerParams(msg->position_pid[i].kp, msg->position_pid[i].ki, msg->position_pid[i].kd, msg->position_pid[i].i_windup);
+				md.setPositionControllerParams(msg->position_pid[i].kp, msg->position_pid[i].ki,
+											   msg->position_pid[i].kd, msg->position_pid[i].i_windup);
 				md.setProfileVelocity(msg->position_pid[i].max_output);
 				if (i < (int)msg->velocity_pid.size())
 				{
-					md.setVelocityControllerParams(msg->velocity_pid[i].kp, msg->velocity_pid[i].ki, msg->velocity_pid[i].kd, msg->velocity_pid[i].i_windup);
+					md.setVelocityControllerParams(msg->velocity_pid[i].kp, msg->velocity_pid[i].ki,
+												   msg->velocity_pid[i].kd,
+												   msg->velocity_pid[i].i_windup);
 					md.setMaxTorque(msg->velocity_pid[i].max_output);
 				}
 			}

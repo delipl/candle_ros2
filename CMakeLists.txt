@@ -15,9 +15,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # find dependencies
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
@@ -45,7 +48,7 @@ target_link_libraries(${PROJECT_NAME}_node candle)
 target_include_directories(${PROJECT_NAME}_node PUBLIC ./candle/include ${CMAKE_SOURCE_DIR}/include)
 
 rosidl_target_interfaces(${PROJECT_NAME}_node ${PROJECT_NAME} "rosidl_typesupport_cpp")  # Links msgs from this very package
-ament_target_dependencies(${PROJECT_NAME}_node rclcpp sensor_msgs)
+ament_target_dependencies(${PROJECT_NAME}_node rclcpp sensor_msgs diagnostic_msgs)
 
 install(TARGETS ${PROJECT_NAME}_node 
   DESTINATION lib/${PROJECT_NAME}
