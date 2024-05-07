@@ -25,6 +25,7 @@ class Md80Node : public rclcpp::Node
 
 	rclcpp::Service<candle_ros2::srv::AddMd80s>::SharedPtr addMd80Service;
 	rclcpp::Service<candle_ros2::srv::GenericMd80Msg>::SharedPtr zeroMd80Service;
+	rclcpp::Service<candle_ros2::srv::GenericMd80Msg>::SharedPtr clearErrorsService;
 	rclcpp::Service<candle_ros2::srv::SetModeMd80s>::SharedPtr setModeMd80Service;
 	rclcpp::Service<candle_ros2::srv::GenericMd80Msg>::SharedPtr enableMd80Service;
 	rclcpp::Service<candle_ros2::srv::GenericMd80Msg>::SharedPtr disableMd80Service;
@@ -46,6 +47,8 @@ class Md80Node : public rclcpp::Node
 	void service_enableMd80(const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
 							std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response);
 	void service_disableMd80(const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
+							 std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response);
+	void service_clearErrorMd80(const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
 							 std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response);
 
 	mab::Candle* findCandleByMd80Id(uint16_t md80Id);

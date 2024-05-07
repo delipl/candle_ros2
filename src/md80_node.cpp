@@ -93,6 +93,10 @@ Md80Node::Md80Node(int argc, char** argv) : Node("candle_ros2_node")
 	disableMd80Service = this->create_service<candle_ros2::srv::GenericMd80Msg>(
 		this->get_name() + std::string("/disable_md80s"),
 		std::bind(&Md80Node::service_disableMd80, this, std::placeholders::_1, std::placeholders::_2));
+	clearErrorsService = this->create_service<candle_ros2::srv::GenericMd80Msg>(
+		this->get_name() + std::string("/clear_error_md80s"),
+		std::bind(&Md80Node::service_clearErrorMd80, this, std::placeholders::_1,
+				  std::placeholders::_2));
 
 	motionCommandSub = this->create_subscription<candle_ros2::msg::MotionCommand>(
 		"md80/motion_command", 10,
@@ -295,6 +299,27 @@ void Md80Node::service_disableMd80(
 		{
 			response->drives_success.push_back(false);
 			RCLCPP_WARN(this->get_logger(), "Drive with ID: %d is not added!", id);
+		}
+	}
+}
+void Md80Node::service_clearErrorMd80(
+	const std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Request> request,
+	std::shared_ptr<candle_ros2::srv::GenericMd80Msg::Response> response)
+{
+    bool success = false;
+	for (auto& id : request->drive_ids)
+	{
+		auto candle = findCandleByMd80Id(id);
+		if (candle != NULL)
+		{
+            candle->end();
+			success = candle->setupMd80ClearWarnings(id) && candle->setupMd80ClearErrors(id);
+			response->drives_success.push_back(success);
+		}
+		else
+		{
+			response->drives_success.push_back(false);
+			RCLCPP_WARN(this->get_logger(), "Drive with ID: %d could not clear errors!", id);
 		}
 	}
 }
