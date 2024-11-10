@@ -25,4 +25,4 @@ Topic published by the node is:
 
 ## Quick startup guide
 
-Please find a detailed startup guide in the [MD80 x CANdle manual](https://www.mabrobotics.pl/servos)
+Please find a detailed startup guide in the [MD80 x CANdle manual](https://mabrobotics.github.io/MD80-x-CANdle-Documentation/intro.html)
